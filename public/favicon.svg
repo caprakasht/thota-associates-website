@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2a42"></stop>
+      <stop offset="100%" stop-color="#081423"></stop>
+    </linearGradient>
+    <linearGradient id="goldGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8c77a"></stop>
+      <stop offset="50%" stop-color="#c9a961"></stop>
+      <stop offset="100%" stop-color="#a88a4e"></stop>
+    </linearGradient>
+  </defs><rect x="0" y="0" width="512" height="512" fill="#c9a961"></rect><rect x="32" y="32" width="448" height="448" fill="url(#bgGrad2)"></rect><text x="256" y="325" font-family="'Cormorant Garamond', Georgia, serif" font-size="220" font-weight="500" fill="url(#goldGrad2)" text-anchor="middle" letter-spacing="2">T&amp;A</text></svg>
