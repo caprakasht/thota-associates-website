@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Phone, Mail, MapPin, ArrowRight, ArrowLeft, Calculator, FileText, Shield, Scale, TrendingUp, Menu, X, CheckCircle2, MessageCircle, Award, Clock, Building2, ChevronDown, Landmark, Sparkles, Users, BookOpen, Target, Compass, Briefcase, Globe, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import ChatbotWidget from './ChatbotWidget';
 
 // URL <-> page state sync helpers. Defined at module scope so they are not
 // recreated on every render.
@@ -2949,12 +2950,7 @@ export default function App() {
         </div>
       </footer>
 
-      {!menuOpen && (
-        <a href="https://wa.me/919700138340" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gold flex items-center justify-center active-scale hover:scale-110 transition-transform whatsapp-shadow text-white">
-          <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-          <span className="absolute inset-0 rounded-full bg-gold animate-ping" style={{ opacity: 0.2 }} />
-        </a>
-      )}
+      {!menuOpen && <ChatbotWidget />}
 
       <ServiceModal service={activeService} onClose={() => setActiveService(null)} />
     </div>
