@@ -56,6 +56,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#0b1929" />
+
+  <!-- RSS FEED AUTO-DISCOVERY -->
+  <link rel="alternate" type="application/rss+xml" title="Thota and Associates · Insights" href="/insights-rss.xml" />
+
   <meta name="msapplication-TileColor" content="#0b1929" />
   <meta name="apple-mobile-web-app-title" content="Thota & Associates" />
   <meta name="application-name" content="Thota and Associates" />
@@ -281,6 +285,10 @@
     <input type="text" name="service" />
     <input type="text" name="context" />
     <input type="text" name="urgency" />
+    <input type="text" name="bot-field" />
+  </form>
+  <form name="insights-subscribe" netlify netlify-honeypot="bot-field" hidden>
+    <input type="email" name="email" />
     <input type="text" name="bot-field" />
   </form>
 

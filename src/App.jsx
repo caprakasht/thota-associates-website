@@ -2239,7 +2239,7 @@ export default function App() {
     window.scrollTo(0, 0);
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
-  }, [page]);
+  }, [page, currentSlug]);
 
   useEffect(() => {
     const handler = (e) => {

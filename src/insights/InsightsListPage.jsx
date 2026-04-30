@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Reveal } from '../components/Reveal';
 import { ALL_CATEGORIES } from './insights-loader';
 import ArticleCard from './ArticleCard';
+import SubscribeForm from './SubscribeForm';
 
 export default function InsightsListPage({ articles, onBack }) {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -119,9 +120,7 @@ export default function InsightsListPage({ articles, onBack }) {
             </p>
           </Reveal>
           <Reveal delay={150}>
-            <div className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-sm border border-dashed border-gold-30 text-sm text-stone-400">
-              Subscribe form (Phase 4)
-            </div>
+            <SubscribeForm />
           </Reveal>
         </div>
       </section>

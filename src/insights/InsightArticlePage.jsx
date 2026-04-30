@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Reveal } from '../components/Reveal';
 import ArticleCard from './ArticleCard';
+import SubscribeForm from './SubscribeForm';
 
 const formatArticleDate = (iso) => {
   if (!iso) return '';
@@ -89,7 +91,100 @@ const markdownComponents = {
   em: ({ children }) => <em className="italic">{children}</em>,
 };
 
+const SITE_ORIGIN = 'https://thotaassociates.com';
+
+function toAbsoluteUrl(url) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${SITE_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function useArticleHead(article) {
+  useEffect(() => {
+    if (!article) return;
+
+    const articleUrl = `${SITE_ORIGIN}/insights/${article.slug}`;
+    const description = article.metaDescription || article.excerpt || '';
+    const heroAbs = toAbsoluteUrl(article.heroImage);
+    const ogImage = heroAbs || `${SITE_ORIGIN}/og-image.jpg`;
+    const pageTitle = `${article.title} — Thota and Associates`;
+
+    const originalTitle = document.title;
+    const restoreList = [];
+
+    const setMeta = (selector, attr, value) => {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      restoreList.push({ el, attr, original: el.getAttribute(attr) });
+      el.setAttribute(attr, value);
+    };
+
+    document.title = pageTitle;
+    setMeta('meta[name="title"]', 'content', pageTitle);
+    setMeta('meta[name="description"]', 'content', description);
+    setMeta('meta[property="og:title"]', 'content', pageTitle);
+    setMeta('meta[property="og:description"]', 'content', description);
+    setMeta('meta[property="og:image"]', 'content', ogImage);
+    setMeta('meta[property="og:url"]', 'content', articleUrl);
+    setMeta('meta[property="og:type"]', 'content', 'article');
+    setMeta('meta[name="twitter:title"]', 'content', pageTitle);
+    setMeta('meta[name="twitter:description"]', 'content', description);
+    setMeta('meta[name="twitter:image"]', 'content', ogImage);
+    setMeta('meta[name="twitter:url"]', 'content', articleUrl);
+
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: article.title,
+      description,
+      ...(heroAbs ? { image: [heroAbs] } : {}),
+      datePublished: article.date,
+      dateModified: article.date,
+      author: {
+        '@type': 'Person',
+        name: article.author || 'CA Bhanu Prakash Thota',
+        jobTitle: article.authorTitle || 'Founder & Principal',
+        url: `${SITE_ORIGIN}/leadership`,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Thota and Associates',
+        url: SITE_ORIGIN,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_ORIGIN}/web-app-manifest-512x512.png`,
+        },
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': articleUrl,
+      },
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'article-jsonld';
+    script.text = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+
+    return () => {
+      document.title = originalTitle;
+      for (const { el, attr, original } of restoreList) {
+        if (original === null) {
+          el.removeAttribute(attr);
+        } else {
+          el.setAttribute(attr, original);
+        }
+      }
+      const existing = document.getElementById('article-jsonld');
+      if (existing) existing.remove();
+    };
+  }, [article]);
+}
+
 export default function InsightArticlePage({ article, allArticles, onBack }) {
+  useArticleHead(article);
+
   if (!article) {
     return (
       <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 overflow-hidden min-h-[60vh]">
@@ -199,6 +294,24 @@ export default function InsightArticlePage({ article, allArticles, onBack }) {
           </div>
         </section>
       )}
+
+      <section className="relative py-12 sm:py-16 border-t border-white/5">
+        <div className="max-w-3xl mx-auto px-5 sm:px-6">
+          <div className="text-center mb-6 sm:mb-8">
+            <Reveal>
+              <div className="text-xs uppercase tracking-widest text-gold mb-3 sm:mb-4" style={{ letterSpacing: '0.3em' }}>
+                Stay informed
+              </div>
+              <p className="text-sm sm:text-base text-stone-400 leading-relaxed max-w-md mx-auto">
+                Practitioner notes from our desk, delivered when we publish.
+              </p>
+            </Reveal>
+          </div>
+          <Reveal delay={120}>
+            <SubscribeForm compact />
+          </Reveal>
+        </div>
+      </section>
 
       <section className="py-20 sm:py-24 md:py-28 gradient-cta-section relative overflow-hidden border-t border-white/5">
         <div className="absolute top-0 left-0 right-0 h-px gradient-gold-line" />
