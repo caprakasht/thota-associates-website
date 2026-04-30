@@ -1,16 +1,28 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Phone, Mail, MapPin, ArrowRight, ArrowLeft, Calculator, FileText, Shield, Scale, TrendingUp, Menu, X, CheckCircle2, MessageCircle, Award, Clock, Building2, ChevronDown, Landmark, Sparkles, Users, BookOpen, Target, Compass, Briefcase, Globe, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import ChatbotWidget from './ChatbotWidget';
+import { getAllArticles, getArticleBySlug } from './insights/insights-loader';
 
 // URL <-> page state sync helpers. Defined at module scope so they are not
 // recreated on every render.
-const VALID_PAGES = ['home', 'services', 'leadership', 'contact', 'terms', 'privacy', 'refund', 'disclaimer'];
+const VALID_PAGES = ['home', 'services', 'leadership', 'contact', 'terms', 'privacy', 'refund', 'disclaimer', 'insights', 'article'];
+
+// pathToPage returns { page, slug }. slug is non-null only for /insights/<slug>.
 const pathToPage = (path) => {
-  const slug = (path || '/').replace(/^\/|\/$/g, '');
-  if (!slug) return 'home';
-  return VALID_PAGES.includes(slug) ? slug : 'home';
+  const trimmed = (path || '/').replace(/^\/|\/$/g, '');
+  if (!trimmed) return { page: 'home', slug: null };
+  const segments = trimmed.split('/');
+  if (segments[0] === 'insights') {
+    if (segments.length === 1) return { page: 'insights', slug: null };
+    return { page: 'article', slug: segments.slice(1).join('/') };
+  }
+  return { page: VALID_PAGES.includes(trimmed) ? trimmed : 'home', slug: null };
 };
-const pageToPath = (p) => (p === 'home' ? '/' : `/${p}`);
+const pageToPath = (page, slug) => {
+  if (page === 'home') return '/';
+  if (page === 'article') return slug ? `/insights/${slug}` : '/insights';
+  return `/${page}`;
+};
 
 const customStyles = `
   html {
@@ -2133,14 +2145,28 @@ function ServicesPage({ onBack, services }) {
   );
 }
 
+function InsightsListPage({ articles }) {
+  return <div style={{padding: '120px 24px', color: 'white'}}>Insights list — {articles.length} articles loaded</div>;
+}
+
+function InsightArticlePage({ article }) {
+  if (!article) return <div style={{padding: '120px 24px', color: 'white'}}>Article not found</div>;
+  return <div style={{padding: '120px 24px', color: 'white'}}>Article: {article.title}</div>;
+}
+
 export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeService, setActiveService] = useState(null);
-  const [page, setPage] = useState(() =>
-    typeof window !== 'undefined' ? pathToPage(window.location.pathname) : 'home'
-  );
+  // We keep `page` as a plain string and track `currentSlug` separately rather
+  // than nesting them into one object — every existing setPage('home') etc.
+  // call site stays untouched, and slug is only consulted for page === 'article'.
+  const initialRoute = typeof window !== 'undefined'
+    ? pathToPage(window.location.pathname)
+    : { page: 'home', slug: null };
+  const [page, setPage] = useState(initialRoute.page);
+  const [currentSlug, setCurrentSlug] = useState(initialRoute.slug);
   const [activeSection, setActiveSection] = useState('home');
   const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
@@ -2150,15 +2176,19 @@ export default function App() {
   // Update the browser URL whenever the page state changes so deep links,
   // bookmarks, and the sitemap reflect the visible page.
   useEffect(() => {
-    const targetPath = pageToPath(page);
+    const targetPath = pageToPath(page, currentSlug);
     if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
-      window.history.pushState({ page }, '', targetPath);
+      window.history.pushState({ page, slug: currentSlug }, '', targetPath);
     }
-  }, [page]);
+  }, [page, currentSlug]);
 
   // Handle browser back / forward navigation by reading the path and syncing state.
   useEffect(() => {
-    const onPopState = () => setPage(pathToPage(window.location.pathname));
+    const onPopState = () => {
+      const { page: p, slug: s } = pathToPage(window.location.pathname);
+      setPage(p);
+      setCurrentSlug(s);
+    };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -2358,7 +2388,7 @@ export default function App() {
     { label: 'Home', href: '#home', type: 'anchor' },
     { label: 'Services', href: '#services', type: 'anchor', hasDropdown: true },
     { label: 'About Us', href: null, type: 'page', target: 'leadership' },
-    { label: 'Insights', href: '#insights', type: 'anchor' },
+    { label: 'Insights', href: null, type: 'page', target: 'insights' },
     { label: 'Contact Us', href: null, type: 'page', target: 'contact' },
   ];
 
@@ -2536,6 +2566,10 @@ export default function App() {
         <ContactPage onBack={() => setPage('home')} services={serviceNames} />
       ) : page === 'services' ? (
         <ServicesPage onBack={() => setPage('home')} services={services} />
+      ) : page === 'insights' ? (
+        <InsightsListPage articles={getAllArticles()} />
+      ) : page === 'article' ? (
+        <InsightArticlePage article={getArticleBySlug(currentSlug)} />
       ) : (page === 'terms' || page === 'privacy' || page === 'refund' || page === 'disclaimer') ? (
         <LegalPage type={page} onBack={() => setPage('home')} onNavigate={(p) => setPage(p)} />
       ) : (
