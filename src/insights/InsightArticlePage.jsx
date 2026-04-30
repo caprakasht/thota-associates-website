@@ -147,7 +147,7 @@ function useArticleHead(article) {
       '@type': 'Article',
       headline: article.title,
       description,
-      ...(heroAbs ? { image: [heroAbs] } : {}),
+      image: [heroAbs || `${SITE_ORIGIN}/og-image.jpg`],
       datePublished: article.date,
       dateModified: article.date,
       author: {
