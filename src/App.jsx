@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
 import { Phone, Mail, MapPin, ArrowRight, ArrowLeft, Calculator, FileText, Shield, Scale, TrendingUp, Menu, X, CheckCircle2, MessageCircle, Award, Clock, Building2, ChevronDown, Landmark, Sparkles, Users, BookOpen, Target, Compass, Briefcase, Globe, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import ChatbotWidget from './ChatbotWidget';
 import { getAllArticles, getArticleBySlug } from './insights/insights-loader';
+import { Reveal, useReveal } from './components/Reveal';
+import InsightsListPage from './insights/InsightsListPage';
+import ArticleCard from './insights/ArticleCard';
+const InsightArticlePage = lazy(() => import('./insights/InsightArticlePage'));
 
 // URL <-> page state sync helpers. Defined at module scope so they are not
 // recreated on every render.
@@ -187,32 +191,6 @@ const customStyles = `
   @media (min-width: 1024px) { .credentials-grid { gap: 1.25rem; } }
   @media (min-width: 1280px) { .credentials-grid { gap: 2rem; } }
 `;
-
-const useReveal = (threshold = 0.15) => {
-  const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return [ref, visible];
-};
-
-const Reveal = ({ children, delay = 0, className = '' }) => {
-  const [ref, visible] = useReveal();
-  return (
-    <div ref={ref} style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}>
-      {children}
-    </div>
-  );
-};
 
 const Counter = ({ end, suffix = '', duration = 2000 }) => {
   const [count, setCount] = useState(0);
@@ -2145,13 +2123,17 @@ function ServicesPage({ onBack, services }) {
   );
 }
 
-function InsightsListPage({ articles }) {
-  return <div style={{padding: '120px 24px', color: 'white'}}>Insights list — {articles.length} articles loaded</div>;
-}
-
-function InsightArticlePage({ article }) {
-  if (!article) return <div style={{padding: '120px 24px', color: 'white'}}>Article not found</div>;
-  return <div style={{padding: '120px 24px', color: 'white'}}>Article: {article.title}</div>;
+function ArticleLoadingFallback() {
+  return (
+    <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 min-h-[60vh] flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 text-gold animate-spin mx-auto mb-4" strokeWidth={1.5} />
+        <div className="text-xs uppercase tracking-widest text-stone-500" style={{ letterSpacing: '0.3em' }}>
+          Loading article
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function App() {
@@ -2296,7 +2278,7 @@ export default function App() {
 
   useEffect(() => {
     window.__siteNav = {
-      goTo: (p) => { setActiveService(null); setMenuOpen(false); setPage(p); },
+      goTo: (p, slug = null) => { setActiveService(null); setMenuOpen(false); setPage(p); setCurrentSlug(slug); },
       scrollTo: (id) => {
         const doScroll = () => {
           const el = document.getElementById(id);
@@ -2375,14 +2357,7 @@ export default function App() {
     { q: 'How do you handle confidentiality?', a: 'All engagements are governed by chartered-accountant professional secrecy standards. For sensitive matters — valuations, insolvency, litigation — we execute NDAs up-front. Client documents are stored on encrypted infrastructure, and information is shared only with team members directly engaged on the matter.' },
   ];
 
-  const insights = [
-    { cat: 'Valuations', date: 'March 2026', title: 'IBBI Valuation Standards: What the 2025 Amendments Mean for Registered Valuers', excerpt: "A practitioner's read on the recent amendments — what has genuinely changed, what has merely been clarified, and what valuers need to operationalize immediately." },
-    { cat: 'Insolvency', date: 'February 2026', title: 'The Evolving Recovery Landscape in IBC: A View From the Ground', excerpt: 'Recovery rates, timelines, and the quiet rise of Section 12A withdrawals — what creditors and resolution applicants should know heading into FY26.' },
-    { cat: 'Tax Law', date: 'January 2026', title: 'Section 194R and the Gift-Perquisite Puzzle: Practical Compliance Approaches', excerpt: 'Two years in, Section 194R continues to create ambiguity for businesses. A framework for deciding when to withhold, how to document, and how to respond to notices.' },
-    { cat: 'Valuations', date: 'December 2025', title: 'Valuing Intangibles in M&A: A Framework for Purchase Price Allocation', excerpt: 'PPA under Ind-AS 103 often produces surprises. A structured approach to separating identifiable intangibles from goodwill — and defending each assumption in post-close review.' },
-    { cat: 'Startup Advisory', date: 'November 2025', title: 'Virtual CFO vs Full-Time CFO: When Does the Switch Actually Make Sense?', excerpt: 'A practical framework for founders evaluating the shift from a vCFO engagement to a full-time hire — when runway, complexity, and ambition justify the step up.' },
-    { cat: 'Regulatory', date: 'October 2025', title: 'FEMA Amendments 2025: What Inbound Investors Need to Know About FC-GPR Timelines', excerpt: 'Recent amendments to reporting timelines and valuation thresholds under FEMA have meaningful compliance implications for every foreign-funded entity.' },
-  ];
+  const homeInsights = getAllArticles().slice(0, 6);
 
   const navItems = [
     { label: 'Home', href: '#home', type: 'anchor' },
@@ -2567,9 +2542,15 @@ export default function App() {
       ) : page === 'services' ? (
         <ServicesPage onBack={() => setPage('home')} services={services} />
       ) : page === 'insights' ? (
-        <InsightsListPage articles={getAllArticles()} />
+        <InsightsListPage articles={getAllArticles()} onBack={() => setPage('home')} />
       ) : page === 'article' ? (
-        <InsightArticlePage article={getArticleBySlug(currentSlug)} />
+        <Suspense fallback={<ArticleLoadingFallback />}>
+          <InsightArticlePage
+            article={getArticleBySlug(currentSlug)}
+            allArticles={getAllArticles()}
+            onBack={() => { setCurrentSlug(null); setPage('insights'); }}
+          />
+        </Suspense>
       ) : (page === 'terms' || page === 'privacy' || page === 'refund' || page === 'disclaimer') ? (
         <LegalPage type={page} onBack={() => setPage('home')} onNavigate={(p) => setPage(p)} />
       ) : (
@@ -2764,6 +2745,7 @@ export default function App() {
           </section>
 
           {/* INSIGHTS */}
+          {homeInsights.length > 0 && (
           <section id="insights" className="py-20 sm:py-24 md:py-32 relative border-t border-white/5" style={{ overflowX: 'clip' }}>
             <div className="max-w-7xl mx-auto">
               <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14 md:mb-16 px-5 sm:px-6">
@@ -2779,18 +2761,13 @@ export default function App() {
               </div>
               <div className="px-5 sm:px-6 flex items-center justify-end gap-4 sm:gap-6 mb-8 sm:mb-10">
                 <Reveal>
-                  <div className="flex items-center gap-4 sm:gap-6">
-                    <div className="hidden md:flex items-center gap-2">
-                      <button onClick={() => scrollInsights('prev')} aria-label="Previous insights" className="w-11 h-11 rounded-full border border-white/10 hover-border-gold hover-text-gold transition-all flex items-center justify-center text-stone-300 active-scale">
-                        <ArrowLeft className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => scrollInsights('next')} aria-label="Next insights" className="w-11 h-11 rounded-full border border-white/10 hover-border-gold hover-text-gold transition-all flex items-center justify-center text-stone-300 active-scale">
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <a href="mailto:services@thotaassociates.com?subject=Subscribe%20to%20Insights" className="inline-flex items-center gap-2 text-sm text-gold hover:gap-3 transition-all">
-                      Subscribe <ArrowRight className="w-4 h-4" />
-                    </a>
+                  <div className="hidden md:flex items-center gap-2">
+                    <button onClick={() => scrollInsights('prev')} aria-label="Previous insights" className="w-11 h-11 rounded-full border border-white/10 hover-border-gold hover-text-gold transition-all flex items-center justify-center text-stone-300 active-scale">
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => scrollInsights('next')} aria-label="Next insights" className="w-11 h-11 rounded-full border border-white/10 hover-border-gold hover-text-gold transition-all flex items-center justify-center text-stone-300 active-scale">
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </Reveal>
               </div>
@@ -2801,25 +2778,9 @@ export default function App() {
 
                 <div ref={insightsRef} className="overflow-x-auto overscroll-x-contain scrollbar-hide pb-4" style={{ overflowY: 'clip', touchAction: 'pan-x pinch-zoom' }}>
                   <div className="flex gap-4 sm:gap-6 px-5 sm:px-6">
-                    {insights.map((post, i) => (
-                      <Reveal key={post.title} delay={i * 80} className="flex-shrink-0 snap-start w-72 sm:w-80 md:w-96">
-                        <a href="#" className="group block h-full">
-                          <article className="h-full p-6 sm:p-8 rounded-2xl border border-white/10 gradient-card hover-bg-white-4 hover-border-gold transition-colors duration-200 flex flex-col">
-                            <div className="rounded-xl mb-6 sm:mb-8 flex items-center justify-center border border-white/5 bg-gold-5" style={{ aspectRatio: '16/10' }}>
-                              <BookOpen className="w-9 h-9 sm:w-10 sm:h-10 text-gold" style={{ opacity: 0.4 }} />
-                            </div>
-                            <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-stone-500 mb-3 sm:mb-4" style={{ letterSpacing: '0.2em' }}>
-                              <span className="text-gold">{post.cat}</span>
-                              <span className="w-1 h-1 rounded-full bg-stone-600" />
-                              <span>{post.date}</span>
-                            </div>
-                            <h3 className="serif text-lg sm:text-xl leading-snug group-hover-text-gold transition-colors mb-3 sm:mb-4 text-stone-100">{post.title}</h3>
-                            <p className="text-sm text-stone-400 leading-relaxed mb-5 sm:mb-6 flex-1">{post.excerpt}</p>
-                            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-gold mt-auto" style={{ letterSpacing: '0.2em' }}>
-                              Read more <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                          </article>
-                        </a>
+                    {homeInsights.map((post, i) => (
+                      <Reveal key={post.slug} delay={i * 80} className="flex-shrink-0 snap-start w-72 sm:w-80 md:w-96">
+                        <ArticleCard article={post} />
                       </Reveal>
                     ))}
                   </div>
@@ -2830,9 +2791,23 @@ export default function App() {
                     Swipe to explore
                   </p>
                 </div>
+
+                <div className="px-5 sm:px-6 mt-10 sm:mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+                  <Reveal>
+                    <button type="button" onClick={() => window.__siteNav && window.__siteNav.goTo('insights')} className="group inline-flex items-center gap-2 text-sm text-gold hover:gap-3 transition-all">
+                      View all insights <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </Reveal>
+                  <Reveal delay={120}>
+                    <a href="mailto:services@thotaassociates.com?subject=Subscribe%20to%20Insights" className="group inline-flex items-center gap-2 text-sm text-stone-400 hover-text-gold hover:gap-3 transition-all">
+                      Subscribe <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                  </Reveal>
+                </div>
               </div>
             </div>
           </section>
+          )}
 
           {/* FINAL CTA */}
           <section className="py-20 sm:py-24 md:py-28 gradient-cta-section relative overflow-hidden">
