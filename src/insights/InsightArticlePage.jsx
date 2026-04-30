@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, createContext, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -13,6 +13,8 @@ const formatArticleDate = (iso) => {
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     .format(d).toUpperCase();
 };
+
+const ListTypeContext = createContext('ul');
 
 const markdownComponents = {
   h1: ({ children }) => (
@@ -44,19 +46,27 @@ const markdownComponents = {
     );
   },
   ul: ({ children }) => (
-    <ul className="space-y-2.5 mb-6 max-w-2xl list-none pl-0">{children}</ul>
+    <ListTypeContext.Provider value="ul">
+      <ul className="space-y-2.5 mb-6 max-w-2xl list-none pl-0">{children}</ul>
+    </ListTypeContext.Provider>
   ),
   ol: ({ children }) => (
-    <ol className="space-y-2.5 mb-6 max-w-2xl list-decimal pl-6 marker:text-gold text-stone-300 leading-relaxed">{children}</ol>
+    <ListTypeContext.Provider value="ol">
+      <ol className="space-y-2.5 mb-6 max-w-2xl list-decimal pl-6 text-stone-300 leading-relaxed">{children}</ol>
+    </ListTypeContext.Provider>
   ),
-  li: ({ children, ordered }) => (
-    ordered
-      ? <li className="text-stone-300 leading-relaxed pl-1">{children}</li>
-      : <li className="flex items-start gap-3 text-stone-300 leading-relaxed">
-          <span className="w-1 h-1 rounded-full bg-gold mt-2.5 flex-shrink-0" />
-          <span className="flex-1 min-w-0">{children}</span>
-        </li>
-  ),
+  li: ({ children }) => {
+    const listType = useContext(ListTypeContext);
+    if (listType === 'ol') {
+      return <li className="text-stone-300 leading-relaxed pl-1">{children}</li>;
+    }
+    return (
+      <li className="flex items-start gap-3 text-stone-300 leading-relaxed">
+        <span className="w-1 h-1 rounded-full bg-gold mt-2.5 flex-shrink-0" />
+        <span className="flex-1 min-w-0">{children}</span>
+      </li>
+    );
+  },
   blockquote: ({ children }) => (
     <blockquote className="border-l-4 border-gold pl-6 italic text-stone-300 my-6 max-w-2xl">{children}</blockquote>
   ),
@@ -80,11 +90,11 @@ const markdownComponents = {
   ),
   hr: () => <hr className="my-12 border-t border-gold-20" />,
   table: ({ children }) => (
-    <div className="overflow-x-auto my-6 max-w-2xl">
-      <table className="min-w-full text-sm text-stone-300 border-collapse">{children}</table>
+    <div className="overflow-x-auto my-6 max-w-2xl rounded-xl border border-white/10 bg-white-2">
+      <table className="article-table min-w-full text-sm text-stone-300 border-collapse">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className="border-b border-gold-30">{children}</thead>,
+  thead: ({ children }) => <thead className="bg-gold-5 border-b border-gold-30">{children}</thead>,
   th: ({ children }) => <th className="text-left py-3 px-4 text-xs uppercase text-gold" style={{ letterSpacing: '0.15em' }}>{children}</th>,
   td: ({ children }) => <td className="py-3 px-4 border-b border-white/5">{children}</td>,
   strong: ({ children }) => <strong className="text-stone-100 font-semibold">{children}</strong>,
@@ -209,7 +219,7 @@ export default function InsightArticlePage({ article, allArticles, onBack }) {
 
   return (
     <>
-      <section className="relative pt-28 pb-12 sm:pt-36 sm:pb-16 overflow-hidden">
+      <section className="relative pt-28 pb-4 sm:pt-36 sm:pb-6 overflow-hidden">
         {!article.heroImage && (
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/3 -right-20 w-96 h-96 rounded-full gradient-hero-orb-gold" style={{ filter: 'blur(160px)' }} />
@@ -263,7 +273,7 @@ export default function InsightArticlePage({ article, allArticles, onBack }) {
         </section>
       )}
 
-      <section className="relative py-12 sm:py-16 md:py-20">
+      <section className="relative pt-2 pb-12 sm:pt-4 sm:pb-16 md:pt-6 md:pb-20">
         <div className="max-w-3xl mx-auto px-5 sm:px-6">
           <Reveal>
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>

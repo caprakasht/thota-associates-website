@@ -190,6 +190,14 @@ const customStyles = `
   @media (min-width: 768px) { .credentials-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; } }
   @media (min-width: 1024px) { .credentials-grid { gap: 1.25rem; } }
   @media (min-width: 1280px) { .credentials-grid { gap: 2rem; } }
+
+  /* Article ordered lists — gold markers. Tailwind's marker: variant doesn't
+     compile against custom utilities (.text-gold), so we use a raw rule. */
+  ol li::marker { color: #c9a961; font-weight: 600; }
+
+  /* Article tables — striped even rows. Tailwind's even: variant doesn't
+     compile against custom utilities (.bg-white-4), so we use a raw rule. */
+  .article-table tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.04); }
 `;
 
 const Counter = ({ end, suffix = '', duration = 2000 }) => {

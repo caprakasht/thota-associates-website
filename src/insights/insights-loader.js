@@ -1,4 +1,4 @@
-import matter from 'gray-matter';
+import fm from 'front-matter';
 
 const articleModules = import.meta.glob('/src/content/articles/*.md', {
   query: '?raw',
@@ -13,7 +13,7 @@ const slugFromPath = (filePath) => filePath.split('/').pop().replace(/\.md$/, ''
 const wordCount = (str) => (str || '').trim().split(/\s+/).filter(Boolean).length;
 
 const articles = Object.entries(articleModules).map(([filePath, raw]) => {
-  const { data, content } = matter(raw);
+  const { attributes: data, body: content } = fm(raw);
   const slug = data.slug || slugFromPath(filePath);
   const article = {
     slug,
